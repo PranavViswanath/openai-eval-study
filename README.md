@@ -27,7 +27,7 @@ metric (effect-conditioned g-mean2).
 The monitor scored 0.37 on gpqa_encoded, 0.32 on gpqa, 0.20 on daft, 0.34 on
 wmdp_sandbagging. It caught roughly a third of the misbehavior and missed the rest.
 
-## What makes that number go up
+## Making the monitorability number go up
 
 I tried a few ways to push the monitor's score higher and none cleanly worked. So
 instead of chasing the number I asked the basic question: why is it missing so much?
@@ -59,7 +59,7 @@ the model and the monitor. The no-op CIs are tight where the eligibility fractio
 is high (encoded, daft); on gpqa and sandbagging the eligible slice is small and CIs
 widen accordingly, but the pattern persists.
 
-## Why this happens, the general claim
+## The general issue
 
 The misbehavior label Y is defined as a function of (prompt, grading rule, model's
 final answer). The chain of thought never enters the definition. So any detector
@@ -74,7 +74,7 @@ known target (the gold key, a planted hint letter, or a directional rule like
 "anything except A"), and that grade *is* the label. The chain of thought is
 irrelevant to the label, so reading it cannot help.
 
-## A small formal statement
+## Formalizing the idea
 
 Let Y(prompt, answer, key) be the eval's misbehavior label. Let N(prompt, answer, key)
 be a "no-op" detector that ignores the chain of thought. Since Y is itself a function
@@ -87,7 +87,7 @@ thought, by construction.
 
 ## Where this points
 
-The fix follows from the cause: the misbehavior label has to depend on the chain of
+The misbehavior label has to depend on the chain of
 thought (or on actions taken), not just on the final answer. Per OpenAI's own
 [dataset registry](https://github.com/openai/monitorability-evals/blob/main/dataset_registry.yaml),
 two of the three eval archetypes already meet this criterion:
@@ -101,14 +101,6 @@ two of the three eval archetypes already meet this criterion:
 
 These archetypes pass the validity criterion structurally, without running a single
 rollout. The intervention archetype, as currently defined, does not.
-
-## Two separate claims, kept separate
-
-1. The CoT monitor misses misbehavior because it is cautious, not because the model
-   hides anything. On gpqa_encoded the model verbalizes the hint ~90% of the time.
-2. The no-op beating the monitor is about the test, not the monitor. It says the
-   intervention archetype cannot measure whether reading the chain of thought helps
-   catch misbehavior. Its label is fully determined by the prompt and the answer.
 
 ## Reproduce
 

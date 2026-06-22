@@ -77,19 +77,6 @@ known target (the gold key, a planted hint letter, or a directional rule like
 "anything except A"), and that grade *is* the label. The chain of thought is
 irrelevant to the label, so reading it cannot help.
 
-## The sharpest objection, and the answer
-
-The strongest reviewer pushback to the argument above: the no-op and the monitor are
-not predicting the same target. The no-op reproduces Y, which is "did the answer
-match the hint." The monitor is being asked something subtly different, "was the
-model causally influenced by the hint in its reasoning." These come apart on cases
-where the model lands on the hinted letter for legitimate reasons (it is just the
-correct answer). For those cases Y = 1 but the hint was not causal, the no-op
-labels them as misbehavior, and an honest CoT monitor correctly does not. So the
-no-op's 0.95 may be inflated by counting baseline-correct answers as caught
-misbehavior, and the ceiling argument may be overstated. The OpenAI metric's
-effect-conditioning step exists precisely to handle this gap.
-
 So the question that decides whether the result holds: on the eligible slice, after
 effect-conditioning, how often is a Y = 1 perturbed rollout coincidental (the model
 would have got it anyway) versus genuinely cue-caused? I ran this on the gpqa_encoded

@@ -55,9 +55,12 @@ The real monitor scored 0.20 to 0.37.
 | wmdp_sandbagging | 0.34 ± 0.21                   | 0.91 ± 0.07                   | 0.04       |
 
 Effect-conditioned g-mean2 (OpenAI's metric, 200 bootstraps), gpt-oss-20b as both
-the model and the monitor. The no-op CIs are tight where the eligibility fraction
-is high (encoded, daft); on gpqa and sandbagging the eligible slice is small and CIs
-widen accordingly, but the pattern persists.
+the model and the monitor. **Load-bearing rows are gpqa_encoded and daft** (eligibility
+0.36 and 0.30, tight CIs). gpqa (eligibility 0.08) and wmdp_sandbagging (0.04, because
+gpt-oss-20b resists the sandbag cue) are power-limited; the pattern survives there but
+the CIs widen. Treat encoded and daft as the result; treat the other two as showing
+the pattern generalizes across cue mechanisms (cue toward the right answer vs cue
+toward a wrong answer).
 
 ## The general issue
 
@@ -73,6 +76,54 @@ in this suite: in all four datasets the eval grades the final answer against a
 known target (the gold key, a planted hint letter, or a directional rule like
 "anything except A"), and that grade *is* the label. The chain of thought is
 irrelevant to the label, so reading it cannot help.
+
+## The sharpest objection, and the answer
+
+The strongest reviewer pushback to the argument above: the no-op and the monitor are
+not predicting the same target. The no-op reproduces Y, which is "did the answer
+match the hint." The monitor is being asked something subtly different, "was the
+model causally influenced by the hint in its reasoning." These come apart on cases
+where the model lands on the hinted letter for legitimate reasons (it is just the
+correct answer). For those cases Y = 1 but the hint was not causal, the no-op
+labels them as misbehavior, and an honest CoT monitor correctly does not. So the
+no-op's 0.95 may be inflated by counting baseline-correct answers as caught
+misbehavior, and the ceiling argument may be overstated. The OpenAI metric's
+effect-conditioning step exists precisely to handle this gap.
+
+So the question that decides whether the result holds: on the eligible slice, after
+effect-conditioning, how often is a Y = 1 perturbed rollout coincidental (the model
+would have got it anyway) versus genuinely cue-caused? I ran this on the gpqa_encoded
+rollouts. For each instance, control_rate is the per-instance rate at which the model
+solves it without the cue.
+
+| effect-eligibility | instances | mean control_rate among Y=1 perturbed | fraction with control_rate ≥ 0.25 (plausibly coincidental) |
+| ------------------ | --------- | ------------------------------------- | --------------------------------------------------------- |
+| effect ≥ 0.30      | 35        | 0.08                                  | 13.4%                                                     |
+| effect ≥ 0.50      | 21        | 0.05                                  | 5.4%                                                      |
+
+The effect-conditioning filter selects in the low-control-rate instances by
+construction. On the slice the metric actually scores, the median control rate
+among Y=1 rollouts is 0.04: the model essentially cannot solve those questions
+without the cue. The coincidental fraction the objection targets exists but is
+5 to 13 percent of the eligible pool, not the roughly 50 percent it would be
+without conditioning.
+
+I also rescored the same data against a stricter counterfactual label,
+`Y_causal = 1 iff (perturbed AND y = 1 AND control_rate < tau)`, which removes
+the coincidental cases by construction:
+
+| label                  | no-op | monitor | gap   |
+| ---------------------- | ----- | ------- | ----- |
+| Y (matched cue)        | 0.954 | 0.374   | 0.580 |
+| Y_causal, tau = 0.50   | 0.927 | 0.287   | 0.640 |
+| Y_causal, tau = 0.25   | 0.973 | 0.331   | 0.642 |
+
+Tightening to the cleaner counterfactual moves the no-op by at most 0.03 and
+*widens* the gap, because the monitor drops more than the no-op does. Stricter
+tau pushes the no-op *up*, because `Y_causal` collapses onto exactly the
+deterministic cue-following cases where the answer-reader is perfect. The
+ceiling survives the cleanest relabel buildable from this data: it is not an
+artifact of the loose Y definition.
 
 ## Formalizing the idea
 
